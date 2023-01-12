@@ -21,7 +21,7 @@ class EurDataset(Dataset):
 def collate_data(batch):
 
     batch_size = len(batch)
-    max_len = 70   # get the max length of sentence in current batch
+    max_len = max(map(lambda x: len(x), batch))    # get the max length of sentence in current batch
     sents = np.ones((batch_size, max_len), dtype=np.int64)
     sort_by_len = sorted(batch, key=lambda x: len(x), reverse=True)
 
