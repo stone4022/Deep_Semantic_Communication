@@ -1,0 +1,5 @@
+data/
+logs/
+checkpoints/
+bert/
+__pycache__/
