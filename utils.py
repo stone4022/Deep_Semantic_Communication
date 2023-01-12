@@ -182,7 +182,6 @@ class Channels():
         return Rx_sig
 
 def initNetParams(model):
-    '''Init net parameters.'''
     for p in model.encoder.parameters():
         if p.dim() > 1:
             nn.init.xavier_uniform_(p)
@@ -202,16 +201,14 @@ def initNetParams(model):
 
 
 def subsequent_mask(size):
-    "Mask out subsequent positions."
     attn_shape = (1, size, size)
-    # 产生下三角矩阵
     subsequent_mask = np.triu(np.ones(attn_shape), k=1).astype('uint8')
     return torch.from_numpy(subsequent_mask)
 
 
 def create_masks(src, trg, padding_idx):
+    
     src_mask = (src == padding_idx).unsqueeze(-2).type(torch.FloatTensor)  # [batch, 1, seq_len]
-
     trg_mask = (trg == padding_idx).unsqueeze(-2).type(torch.FloatTensor)  # [batch, 1, seq_len]
     look_ahead_mask = subsequent_mask(trg.size(-1)).type_as(trg_mask.data)
     combined_mask = torch.max(trg_mask, look_ahead_mask)
@@ -238,6 +235,7 @@ def PowerNormalize(x):
 
 
 def SNR_to_noise(snr):
+
     snr = 10 ** (snr / 10)
     noise_std = 1 / np.sqrt(2 * snr)
 
@@ -272,19 +270,12 @@ def train_step(model, src, trg, n_var, pad, opt, criterion, channel, mi_net=None
 
     channel_dec_output = model.channel_decoder(Rx_sig)
     dec_output = model.BART(trg_inp, channel_dec_output)
+   
     pred = model.dense(dec_output)
-    # print('pred:', pred.shape)
-    # pred = model(src, trg_inp, src_mask, look_ahead_mask, n_var)
     ntokens = pred.size(-1)
-
-    # y_est = x +  torch.matmul(n, torch.inverse(H))
-    # loss1 = torch.mean(torch.pow((x_est - y_est.view(x_est.shape)), 2))
-
     loss = loss_function(pred.contiguous().view(-1, ntokens),
                          trg_real.contiguous().view(-1),
                          pad, criterion) + vqvae_loss
-
-    # loss = loss_function(pred, trg_real, pad)
 
     loss.backward()
     opt.step()
@@ -319,12 +310,11 @@ def val_step(model, src, trg, n_var, pad, criterion, channel):
     dec_output = model.BART(trg_inp, channel_dec_output)
     pred = model.dense(dec_output)
 
-    # pred = model(src, trg_inp, src_mask, look_ahead_mask, n_var)
+
     ntokens = pred.size(-1)
     loss = loss_function(pred.contiguous().view(-1, ntokens),
                          trg_real.contiguous().view(-1),
                          pad, criterion) + vqvae_loss
-    # loss = loss_function(pred, trg_real, pad)
 
     return loss.item()
 
@@ -351,10 +341,7 @@ def greedy_decode(model, src, n_var, max_len, padding_idx, start_symbol, channel
     else:
         raise ValueError("Please choose from AWGN, Rayleigh, and Rician")
 
-    #channel_enc_output = model.blind_csi(channel_enc_output)
-
     memory = model.channel_decoder(Rx_sig)
-
     outputs = torch.ones(src.size(0), 1).fill_(start_symbol).type_as(src.data)
 
     for i in range(max_len - 1):
@@ -371,13 +358,9 @@ def greedy_decode(model, src, n_var, max_len, padding_idx, start_symbol, channel
 
         # predict the word
         prob = pred[:, -1:, :]  # (batch_size, 1, vocab_size)
-        # prob = prob.squeeze()
 
         # return the max-prob index
         _, next_word = torch.max(prob, dim=-1)
-        # next_word = next_word.unsqueeze(1)
-
-        # next_word = next_word.data[0]
         outputs = torch.cat([outputs, next_word], dim=1)
 
     return outputs
