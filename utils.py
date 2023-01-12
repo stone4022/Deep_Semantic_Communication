@@ -327,8 +327,7 @@ def greedy_decode(model, src, n_var, max_len, padding_idx, start_symbol, channel
 
     enc_output = model.encoder(src, src_mask)
     channel_enc_output = model.channel_encoder(enc_output)
-    vqvae_loss, quantized, perplexity, encodings = model.vqvae(channel_enc_output)
-    Tx_sig = quantized
+    Tx_sig = channel_enc_output
 
     if channel == 'AWGN':
         Rx_sig = channels.AWGN(Tx_sig, n_var)
