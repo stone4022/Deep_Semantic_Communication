@@ -28,9 +28,6 @@ python preprocess_text.py
 ```shell
 python main.py 
 ```
-### Notes
-+ Please carefully set the $\lambda$ of mutual information part since I have tested the model in different platform, 
-i.e., Tensorflow and Pytorch, same $\lambda$ shows different performance.  
 
 ## Evaluation
 ```shell
