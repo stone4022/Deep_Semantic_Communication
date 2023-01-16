@@ -6,7 +6,7 @@ from torch.utils.data import Dataset
 
 class EurDataset(Dataset):
     def __init__(self, split='train'):
-        data_dir = './data/'
+        data_dir = '../data/'
         with open(data_dir + 'BART/{}_data.pkl'.format(split), 'rb') as f:
             self.data = pickle.load(f)
 
