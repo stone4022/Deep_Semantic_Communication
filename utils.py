@@ -148,6 +148,54 @@ class SeqtoText:
         return(words)
 
 
+class EarlyStopping:
+    """Early stops the training if validation loss doesn't improve after a given patience."""
+    def __init__(self, save_path, patience=10, verbose=True, delta=0.5):
+        """
+        Args:
+            patience (int): How long to wait after last time validation loss improved.
+                            Default: 7
+            verbose (bool): If True, prints a message for each validation loss improvement. 
+                            Default: False
+            delta (float): Minimum change in the monitored quantity to qualify as an improvement.
+                            Default: 0
+        """
+        self.save_path = save_path
+        self.patience = patience
+        self.verbose = verbose
+        self.counter = 0
+        self.best_score = None
+        self.early_stop = False
+        self.val_loss_min = np.Inf
+        self.delta = delta
+
+    def __call__(self, val_loss, model):
+
+        score = -val_loss
+
+        if self.best_score is None:
+            self.best_score = score
+            self.save_checkpoint(val_loss, model)
+        elif score < self.best_score + self.delta:
+            self.counter += 1
+            print(f'EarlyStopping counter: {self.counter} out of {self.patience}')
+            if self.counter >= self.patience:
+                self.early_stop = True
+        else:
+            self.best_score = score
+            self.save_checkpoint(val_loss, model)
+            self.counter = 0
+
+    def save_checkpoint(self, val_loss, model):
+        '''Saves model when validation loss decrease.'''
+        if self.verbose:
+            print(f'Validation loss decreased ({self.val_loss_min:.6f} --> {val_loss:.6f}).  Saving model ...')
+        path = os.path.join(self.save_path, 'best_network.pth')
+        torch.save(model.state_dict(), path)
+        self.val_loss_min = val_loss
+
+
+
 class Channels():
 
     def AWGN(self, Tx_sig, n_var):
@@ -374,7 +422,7 @@ def train_step_bart2fc(model, src, trg, n_var, pad, opt, criterion, channel):
     channels = Channels()
     opt.zero_grad()
     
-    src_mask = (src == 1).type(torch.FloatTensor).to(device) 
+    src_mask = (src == pad).type(torch.FloatTensor).to(device) 
     enc_output = model.encoder(src, src_mask)
     Tx_sig = model.quantization(enc_output)
 
@@ -411,7 +459,7 @@ def val_step_bart2fc(model, src, trg, n_var, pad, criterion, channel):
 
     channels = Channels()
 
-    src_mask = (src == 1).type(torch.FloatTensor).to(device)
+    src_mask = (src == pad).type(torch.FloatTensor).to(device)
     enc_output = model.encoder(src, src_mask)
     Tx_sig = model.quantization(enc_output)
 
@@ -442,12 +490,39 @@ def test_bart2fc(model, src, n_var, max_len, padding_idx, start_symbol, channel)
     # create src_mask
     model.eval()
 
-    # trg_inp = trg[:, :-1]
-    # trg_real = trg[:, 1:]
-
     channels = Channels()
 
     src_mask = (src == 1).type(torch.FloatTensor).to(device)
+    enc_output = model.encoder(src, src_mask)
+    Tx_sig = model.quantization(enc_output)
+
+    if channel == 'AWGN':
+        Rx_sig = channels.AWGN(Tx_sig, n_var)
+    elif channel == 'Rayleigh':
+        Rx_sig = channels.Rayleigh(Tx_sig, n_var)
+    elif channel == 'Rician':
+        Rx_sig = channels.Rician(Tx_sig, n_var)
+    elif channel == 'TEST':
+        Rx_sig = Tx_sig
+    else:
+        raise ValueError("Please choose from AWGN, Rayleigh, and Rician")
+
+    dequanted = model.dequantization(Rx_sig)
+    pred = model.dense(dequanted)
+
+    _, sentence = torch.max(pred, dim=-1)
+
+    return sentence
+
+
+def test_bert2fc(model, src, n_var, max_len, padding_idx, start_symbol, channel):
+
+    # create src_mask
+    model.eval()
+
+    channels = Channels()
+
+    src_mask = (src == 0).type(torch.FloatTensor).to(device)
     enc_output = model.encoder(src, src_mask)
     Tx_sig = model.quantization(enc_output)
 
