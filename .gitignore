@@ -3,3 +3,4 @@ logs/
 checkpoints/
 bert_eval/
 __pycache__/
+myLog.log
