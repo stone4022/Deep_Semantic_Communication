@@ -178,7 +178,7 @@ class EarlyStopping:
             self.save_checkpoint(val_loss, model)
         elif score < self.best_score + self.delta:
             self.counter += 1
-            print(f'EarlyStopping counter: {self.counter} out of {self.patience}')
+            print(f'EarlyStopping counter: {self.counter} out of {self.patience} , Validation loss is {val_loss:.6f}')
             if self.counter >= self.patience:
                 self.early_stop = True
         else:

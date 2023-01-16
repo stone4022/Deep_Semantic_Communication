@@ -1,5 +1,5 @@
-data/
+data/europarl/
 logs/
 checkpoints/
-bert/
+bert_eval/
 __pycache__/
