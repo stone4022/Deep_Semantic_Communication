@@ -494,7 +494,7 @@ def test_bart2fc(model, src, n_var, max_len, padding_idx, start_symbol, channel)
 
     channels = Channels()
 
-    src_mask = (src == 1).type(torch.FloatTensor).to(device)
+    src_mask = (src == padding_idx).type(torch.FloatTensor).to(device)
     enc_output = model.encoder(src, src_mask)
     Tx_sig = model.quantization(enc_output)
 
@@ -524,7 +524,7 @@ def test_bert2fc(model, src, n_var, max_len, padding_idx, start_symbol, channel)
 
     channels = Channels()
 
-    src_mask = (src == 0).type(torch.FloatTensor).to(device)
+    src_mask = (src == padding_idx).type(torch.FloatTensor).to(device)
     enc_output = model.encoder(src, src_mask)
     Tx_sig = model.quantization(enc_output)
 
