@@ -150,7 +150,7 @@ class SeqtoText:
 
 class EarlyStopping:
     """Early stops the training if validation loss doesn't improve after a given patience."""
-    def __init__(self, save_path, patience=10, verbose=True, delta=0.1):
+    def __init__(self, save_path, patience=10, verbose=True, delta=0):
         """
         Args:
             patience (int): How long to wait after last time validation loss improved.
