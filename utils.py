@@ -12,7 +12,8 @@ import time
 import torch.nn as nn
 import numpy as np
 from w3lib.html import remove_tags
-from nltk.translate.bleu_score import sentence_bleu
+from nltk.translate.bleu_score import sentence_bleu, SmoothingFunction
+
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -30,7 +31,8 @@ class BleuScore():
             sent1 = remove_tags(sent1).split()
             sent2 = remove_tags(sent2).split()
             score.append(sentence_bleu([sent1], sent2,
-                                       weights=(self.w1, self.w2, self.w3, self.w4)))
+                                       weights=(self.w1, self.w2, self.w3, self.w4), 
+                                       smoothing_function=SmoothingFunction(epsilon=1. / 10).method1))
         return score
 
 
