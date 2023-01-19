@@ -194,6 +194,8 @@ class EarlyStopping:
         if self.verbose:
             print(f'Validation loss decreased ({self.val_loss_min:.6f} --> {val_loss:.6f}).  Saving model ...')
             logger.info(f'Validation loss decreased ({self.val_loss_min:.6f} --> {val_loss:.6f}).  Saving model ...')
+        if not os.path.exists(self.save_path):
+            os.makedirs(self.save_path)
         path = os.path.join(self.save_path, 'best_network.pth')
         torch.save(model.state_dict(), path)
         self.val_loss_min = val_loss
@@ -547,3 +549,70 @@ def test_bert2fc(model, src, n_var, max_len, padding_idx, start_symbol, channel)
     _, sentence = torch.max(pred, dim=-1)
 
     return sentence
+
+
+def train_step_barten2bartde(model, src, trg, n_var, pad, opt, criterion, channel):
+    model.train()
+
+    trg_inp = trg[:, :-1]
+    trg_real = trg[:, 1:]
+
+    opt.zero_grad()
+    
+    src_mask = (src == pad).type(torch.FloatTensor).to(device)
+    trg_mask = (trg_inp == pad).type(torch.FloatTensor).to(device)
+    
+    dec_output = model.BART(src, src_mask, trg_inp, trg_mask)
+    pred = model.dense(dec_output)
+
+    ntokens = pred.size(-1)
+    loss = loss_function(pred.contiguous().view(-1, ntokens),
+                         trg_real.contiguous().view(-1),
+                         pad, criterion)
+
+    loss.backward()
+    opt.step()
+
+    return loss.item()
+
+
+def val_step_barten2bartde(model, src, trg, n_var, pad, criterion, channel):
+    model.eval()
+
+    trg_inp = trg[:, :-1]
+    trg_real = trg[:, 1:]
+    
+    src_mask = (src == pad).type(torch.FloatTensor).to(device)
+    trg_mask = (trg_inp == pad).type(torch.FloatTensor).to(device)
+    
+    dec_output = model.BART(src, src_mask, trg_inp, trg_mask)
+    pred = model.dense(dec_output)
+
+    ntokens = pred.size(-1)
+    loss = loss_function(pred.contiguous().view(-1, ntokens),
+                         trg_real.contiguous().view(-1),
+                         pad, criterion)
+
+    return loss.item()
+
+def test_step_barten2bartde(model, src, n_var, max_len, padding_idx, start_symbol, channel):
+
+    outputs = torch.ones(src.size(0), 1).fill_(start_symbol).type_as(src.data)
+
+    for i in range(max_len - 1):
+        # create the decode mask
+        src_mask = (src == padding_idx).type(torch.FloatTensor).to(device)
+        trg_mask = (outputs == padding_idx).type(torch.FloatTensor).to(device)
+
+        # decode the received signal
+        dec_output = model.BART(src, src_mask, outputs, trg_mask)
+        pred = model.dense(dec_output)
+
+        # predict the word
+        prob = pred[:, -1:, :]  # (batch_size, 1, vocab_size)
+
+        # return the max-prob index
+        _, next_word = torch.max(prob, dim=-1)
+        outputs = torch.cat([outputs, next_word], dim=1)
+
+    return outputs
