@@ -616,3 +616,73 @@ def test_step_barten2bartde(model, src, n_var, max_len, padding_idx, start_symbo
         outputs = torch.cat([outputs, next_word], dim=1)
 
     return outputs
+
+
+def train_step_bert2bart(model, src, trg, n_var, pad, opt, criterion, channel):
+    model.train()
+
+    trg_inp = trg[:, :-1]
+    trg_real = trg[:, 1:]
+
+    opt.zero_grad()
+    
+    src_mask = (src == pad).type(torch.FloatTensor).to(device)
+    trg_mask = (trg_inp == pad).type(torch.FloatTensor).to(device)
+    
+    enc_output = model.encoder(src, src_mask)
+    dec_output = model.decoder(enc_output, src_mask, trg_inp, trg_mask)
+    pred = model.dense(dec_output)
+
+    ntokens = pred.size(-1)
+    loss = loss_function(pred.contiguous().view(-1, ntokens),
+                         trg_real.contiguous().view(-1),
+                         pad, criterion)
+
+    loss.backward()
+    opt.step()
+
+    return loss.item()
+
+
+def val_step_bert2bart(model, src, trg, n_var, pad, criterion, channel):
+    model.eval()
+
+    trg_inp = trg[:, :-1]
+    trg_real = trg[:, 1:]
+    
+    src_mask = (src == pad).type(torch.FloatTensor).to(device)
+    trg_mask = (trg_inp == pad).type(torch.FloatTensor).to(device)
+    
+    enc_output = model.encoder(src, src_mask)
+    dec_output = model.decoder(enc_output, src_mask, trg_inp, trg_mask)
+    pred = model.dense(dec_output)
+
+    ntokens = pred.size(-1)
+    loss = loss_function(pred.contiguous().view(-1, ntokens),
+                         trg_real.contiguous().view(-1),
+                         pad, criterion)
+
+    return loss.item()
+
+def test_step_bert2bart(model, src, n_var, max_len, padding_idx, start_symbol, channel):
+    
+    src_mask = (src == padding_idx).type(torch.FloatTensor).to(device)
+    enc_output = model.encoder(src, src_mask)
+    outputs = torch.ones(src.size(0), 1).fill_(start_symbol).type_as(src.data)
+
+    for i in range(max_len - 1):
+        # create the decode mask
+        trg_mask = (outputs == padding_idx).type(torch.FloatTensor).to(device)
+
+        # decode the received signal
+        dec_output = model.decoder(enc_output, src_mask, outputs, trg_mask)
+        pred = model.dense(dec_output)
+
+        # predict the word
+        prob = pred[:, -1:, :]  # (batch_size, 1, vocab_size)
+
+        # return the max-prob index
+        _, next_word = torch.max(prob, dim=-1)
+        outputs = torch.cat([outputs, next_word], dim=1)
+
+    return outputs
