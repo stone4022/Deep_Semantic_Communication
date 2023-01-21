@@ -10,20 +10,20 @@ import json
 import torch
 import argparse
 import numpy as np
-from dataset_BERT import EurDataset, collate_data
+from dataset_BERTBART import EurDataset, collate_data
 from torch.utils.data import DataLoader
 import sys
 sys.path.append("..") 
-from models.BERT2FC import DeepSC_BERT2FC
-from utils import BleuScore, SNR_to_noise, test_bert2fc
+from models.BERT2BART import DeepSC_BERT2BART
+from utils import BleuScore, SNR_to_noise, test_step_bert2bart
 from tqdm import tqdm
 from sklearn.preprocessing import normalize
-from transformers import BertTokenizer
+from transformers import BartTokenizer
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--data-dir', default='../data/BERT/train_data.pkl', type=str)
-parser.add_argument('--checkpoint-path', default='../checkpoints/BERT2FC/lr=1e-5/', type=str)
+parser.add_argument('--data-dir', default='../data/BERT2BART/train_data.pkl', type=str)
+parser.add_argument('--checkpoint-path', default='../checkpoints/BERT2BART/lr=1e-ˊ/', type=str)
 parser.add_argument('--channel', default='TEST', type=str)
 parser.add_argument('--MAX-LENGTH', default=70, type=int)
 parser.add_argument('--batch-size', default=64, type=int)
@@ -42,7 +42,7 @@ def performance(args, SNR, net, pad_idx, start_idx, end_idx):
     test_iterator = DataLoader(test_eur, batch_size=args.batch_size, num_workers=0,
                                pin_memory=True, collate_fn=collate_data)
     
-    tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
+    tokenizer = BartTokenizer.from_pretrained("facebook/bart-base")
 
     score1 = []
     score2 = []
@@ -61,13 +61,12 @@ def performance(args, SNR, net, pad_idx, start_idx, end_idx):
                 target_word = []
                 noise_std = SNR_to_noise(snr)
 
-                for sents in test_iterator:
-                    sents = sents.to(device)
-                    # src = batch.src.transpose(0, 1)[:1]
-                    target = sents
-
-                    out = test_bert2fc(net, sents, noise_std, args.MAX_LENGTH, pad_idx,
-                                        start_idx, args.channel)
+                for src_sents, tgt_sents in test_iterator:
+                    src_sents = src_sents.to(device)
+                    tgt_sents = tgt_sents.to(device)
+                
+                    out = test_step_bert2bart(net, src_sents, noise_std, args.MAX_LENGTH, pad_idx,
+                                              start_idx, args.channel)
 
                     sentences = out.cpu().numpy().tolist()
                     for i in range(len(sentences)):
@@ -78,7 +77,7 @@ def performance(args, SNR, net, pad_idx, start_idx, end_idx):
                         result_string = tokenizer.decode(sentences[i])
                         word = word + [result_string]
 
-                    target_sent = target.cpu().numpy().tolist()
+                    target_sent = tgt_sents.cpu().numpy().tolist()
                     for i in range(len(target_sent)):
                         for j in range(len(target_sent[i])):
                             if target_sent[i][j] == end_idx:
@@ -143,12 +142,12 @@ if __name__ == '__main__':
     SNR = [0]
     # SNR = [0, 3, 6, 9, 12, 15, 18]
 
-    start_idx = 101
-    pad_idx = 0
-    end_idx = 102
+    bart_start_idx = 0
+    bart_end_idx = 2
+    bert_pad_idx = 0
 
-    vocab_size = 30522
-    deepsc_bart2fc = DeepSC_BERT2FC(vocab_size).to(device)
+    vocab_size = 50265
+    deepsc_bart2fc = DeepSC_BERT2BART(vocab_size).to(device)
 
     # checkpoint = torch.load(args.checkpoint_path + 'best_network.pth')
     # deepsc_bart2fc.load_state_dict(checkpoint, strict=False)
@@ -168,7 +167,7 @@ if __name__ == '__main__':
     deepsc_bart2fc.load_state_dict(checkpoint, strict=False)
     print('model load!')
 
-    bleu_score1, bleu_score2, bleu_score3, bleu_score4 = performance(args, SNR, deepsc_bart2fc, pad_idx, start_idx, end_idx)
+    bleu_score1, bleu_score2, bleu_score3, bleu_score4 = performance(args, SNR, deepsc_bart2fc, bert_pad_idx, bart_start_idx, bart_end_idx)
     print(bleu_score1)
     print(bleu_score2)
     print(bleu_score3)

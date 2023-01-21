@@ -627,7 +627,7 @@ def train_step_bert2bart(model, src, trg, n_var, pad, opt, criterion, channel):
     opt.zero_grad()
     
     src_mask = (src == pad).type(torch.FloatTensor).to(device)
-    trg_mask = (trg_inp == pad).type(torch.FloatTensor).to(device)
+    trg_mask = (trg_inp == 1).type(torch.FloatTensor).to(device) # bart <pad>:1
     
     enc_output = model.encoder(src, src_mask)
     dec_output = model.decoder(enc_output, src_mask, trg_inp, trg_mask)
@@ -651,7 +651,7 @@ def val_step_bert2bart(model, src, trg, n_var, pad, criterion, channel):
     trg_real = trg[:, 1:]
     
     src_mask = (src == pad).type(torch.FloatTensor).to(device)
-    trg_mask = (trg_inp == pad).type(torch.FloatTensor).to(device)
+    trg_mask = (trg_inp == 1).type(torch.FloatTensor).to(device) # bart <pad>:1
     
     enc_output = model.encoder(src, src_mask)
     dec_output = model.decoder(enc_output, src_mask, trg_inp, trg_mask)
@@ -672,7 +672,7 @@ def test_step_bert2bart(model, src, n_var, max_len, padding_idx, start_symbol, c
 
     for i in range(max_len - 1):
         # create the decode mask
-        trg_mask = (outputs == padding_idx).type(torch.FloatTensor).to(device)
+        trg_mask = (outputs == 1).type(torch.FloatTensor).to(device) # bart <pad>:1
 
         # decode the received signal
         dec_output = model.decoder(enc_output, src_mask, outputs, trg_mask)

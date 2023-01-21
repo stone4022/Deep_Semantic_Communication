@@ -27,7 +27,7 @@ class BARTmodel(nn.Module):
 
     def forward(self, x, src_mask, trg_inp, trg_mask):
         output = self.model(
-            input_embeds=x,
+            inputs_embeds=x,
             attention_mask=src_mask,
             decoder_input_ids=trg_inp,
             decoder_attention_mask=trg_mask
@@ -36,9 +36,9 @@ class BARTmodel(nn.Module):
         return output
 
 
-class DeepSC_BERT2FC(nn.Module):
+class DeepSC_BERT2BART(nn.Module):
     def __init__(self, vocab_size):
-        super(DeepSC_BERT2FC, self).__init__()
+        super(DeepSC_BERT2BART, self).__init__()
         
         self.encoder = BERTmodel()
         self.decoder = BARTmodel()
