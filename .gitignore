@@ -1,4 +1,5 @@
 data/europarl/
+data/SIMCSE_BERT/
 logs/
 checkpoints/
 bert_eval/

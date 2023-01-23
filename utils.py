@@ -686,3 +686,99 @@ def test_step_bert2bart(model, src, n_var, max_len, padding_idx, start_symbol, c
         outputs = torch.cat([outputs, next_word], dim=1)
 
     return outputs
+
+
+def train_step_simcse2fc(model, src, trg, n_var, pad, opt, criterion, channel):
+    model.train()
+
+    # trg_inp = trg[:, :-1]
+    # trg_real = trg[:, 1:]
+
+    channels = Channels()
+    opt.zero_grad()
+    
+
+    Tx_sig = model.encoder(src)
+
+
+    if channel == 'AWGN':
+        Rx_sig = channels.AWGN(Tx_sig, n_var)
+    elif channel == 'Rayleigh':
+        Rx_sig = channels.Rayleigh(Tx_sig, n_var)
+    elif channel == 'Rician':
+        Rx_sig = channels.Rician(Tx_sig, n_var)
+    elif channel == 'TEST':
+        Rx_sig = Tx_sig
+    else:
+        raise ValueError("Please choose from AWGN, Rayleigh, and Rician")
+
+    pred = model.dense(Rx_sig)
+
+    ntokens = pred.size(-1) 
+    loss = loss_function(pred.contiguous().view(-1, 30522),
+                         src['input_ids'].contiguous().view(-1),
+                         pad, criterion)
+
+    loss.backward()
+    opt.step()
+
+    return loss.item()
+
+
+def val_step_simcse2fc(model, src, trg, n_var, pad, criterion, channel):
+    model.eval()
+
+    # trg_inp = trg[:, :-1]
+    # trg_real = trg[:, 1:]
+
+    channels = Channels()
+
+    Tx_sig = model.encoder(src)
+
+
+    if channel == 'AWGN':
+        Rx_sig = channels.AWGN(Tx_sig, n_var)
+    elif channel == 'Rayleigh':
+        Rx_sig = channels.Rayleigh(Tx_sig, n_var)
+    elif channel == 'Rician':
+        Rx_sig = channels.Rician(Tx_sig, n_var)
+    elif channel == 'TEST':
+        Rx_sig = Tx_sig
+    else:
+        raise ValueError("Please choose from AWGN, Rayleigh, and Rician")
+
+    pred = model.dense(Rx_sig)
+
+    ntokens = pred.size(-1)
+    loss = loss_function(pred.contiguous().view(-1, 30522),
+                         src['input_ids'].contiguous().view(-1),
+                         pad, criterion)
+
+    return loss.item()
+
+
+def test_simcse2fc(model, src, n_var, max_len, padding_idx, start_symbol, channel):
+
+    # create src_mask
+    model.eval()
+
+    channels = Channels()
+
+    Tx_sig = model.encoder(src)
+
+    if channel == 'AWGN':
+        Rx_sig = channels.AWGN(Tx_sig, n_var)
+    elif channel == 'Rayleigh':
+        Rx_sig = channels.Rayleigh(Tx_sig, n_var)
+    elif channel == 'Rician':
+        Rx_sig = channels.Rician(Tx_sig, n_var)
+    elif channel == 'TEST':
+        Rx_sig = Tx_sig
+    else:
+        raise ValueError("Please choose from AWGN, Rayleigh, and Rician")
+
+    pred = model.dense(Rx_sig)
+
+    _, sentence = torch.max(pred, dim=-1)
+
+    return sentence
