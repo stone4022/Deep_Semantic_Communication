@@ -429,8 +429,8 @@ def train_step_bart2fc(model, src, trg, n_var, pad, opt, criterion, channel):
     opt.zero_grad()
     
     src_mask = (src == pad).type(torch.FloatTensor).to(device) 
-    enc_output = model.encoder(src, src_mask)
-    Tx_sig = model.quantization(enc_output)
+    Tx_sig = model.encoder(src, src_mask)
+    # Tx_sig = model.quantization(enc_output)
 
     if channel == 'AWGN':
         Rx_sig = channels.AWGN(Tx_sig, n_var)
@@ -443,8 +443,8 @@ def train_step_bart2fc(model, src, trg, n_var, pad, opt, criterion, channel):
     else:
         raise ValueError("Please choose from AWGN, Rayleigh, and Rician")
 
-    dequanted = model.dequantization(Rx_sig)
-    pred = model.dense(dequanted)
+    # dequanted = model.dequantization(Rx_sig)
+    pred = model.dense(Rx_sig)
 
     ntokens = pred.size(-1)
     loss = loss_function(pred.contiguous().view(-1, ntokens),
@@ -466,8 +466,8 @@ def val_step_bart2fc(model, src, trg, n_var, pad, criterion, channel):
     channels = Channels()
 
     src_mask = (src == pad).type(torch.FloatTensor).to(device)
-    enc_output = model.encoder(src, src_mask)
-    Tx_sig = model.quantization(enc_output)
+    Tx_sig = model.encoder(src, src_mask)
+    # Tx_sig = model.quantization(enc_output)
 
     if channel == 'AWGN':
         Rx_sig = channels.AWGN(Tx_sig, n_var)
@@ -480,8 +480,8 @@ def val_step_bart2fc(model, src, trg, n_var, pad, criterion, channel):
     else:
         raise ValueError("Please choose from AWGN, Rayleigh, and Rician")
 
-    dequanted = model.dequantization(Rx_sig)
-    pred = model.dense(dequanted)
+    # dequanted = model.dequantization(Rx_sig)
+    pred = model.dense(Rx_sig)
 
     ntokens = pred.size(-1)
     loss = loss_function(pred.contiguous().view(-1, ntokens),
@@ -529,8 +529,8 @@ def test_bert2fc(model, src, n_var, max_len, padding_idx, start_symbol, channel)
     channels = Channels()
 
     src_mask = (src == padding_idx).type(torch.FloatTensor).to(device)
-    enc_output = model.encoder(src, src_mask)
-    Tx_sig = model.quantization(enc_output)
+    Tx_sig = model.encoder(src, src_mask)
+    # Tx_sig = model.quantization(enc_output)
 
     if channel == 'AWGN':
         Rx_sig = channels.AWGN(Tx_sig, n_var)
@@ -543,8 +543,8 @@ def test_bert2fc(model, src, n_var, max_len, padding_idx, start_symbol, channel)
     else:
         raise ValueError("Please choose from AWGN, Rayleigh, and Rician")
 
-    dequanted = model.dequantization(Rx_sig)
-    pred = model.dense(dequanted)
+    # dequanted = model.dequantization(Rx_sig)
+    pred = model.dense(Rx_sig)
 
     _, sentence = torch.max(pred, dim=-1)
 
