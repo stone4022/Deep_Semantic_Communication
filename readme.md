@@ -1,20 +1,9 @@
-# Deep Learning Enabled Semantic Communication Systems
-
-<center>Huiqiang Xie, Zhijin Qin, Geoffrey Ye Li, and Biing-Hwang Juang </center>
-
-This is the implementation of  Deep learning enabled semantic communication systems.
+# Deep Learning Semantic Communication Systems 
 
 ## Requirements
 + See the `requirements.txt` for the required python packages and run `pip install -r requirements.txt` to install them.
 
-## Bibtex
-```bitex
-@article{xie2021deep,
-  author={H. {Xie} and Z. {Qin} and G. Y. {Li} and B. -H. {Juang}},
-  journal={IEEE Transactions on Signal Processing}, 
-  title={Deep Learning Enabled Semantic Communication Systems}, 
-  year={2021},
-  volume={Early Access}}
+
 ```
 ## Preprocess
 ```shell
